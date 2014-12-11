@@ -24,26 +24,24 @@
 (defn build-transaction
   [index-lookup]
   (fn builder [tran]
-    [(reduce (fn [v [k idx]]
-               (let [typer (convert/get-type schema/orsos-schema
-                                             "transaction" k)
-                     value (get tran idx)]
-                 (conj v k (typer value))))
-             [:db/add (datomic/tempid :db.part/user)]
-             index-lookup)]))
+    (let [id (datomic/tempid :db.part/user)]
+      (reduce (fn [v [k idx]]
+                (let [typer (convert/get-type schema/orsos-schema
+                                              "transaction" k)
+                      value (get tran idx)]
+                  (conj v [:db/add id k (typer value)])))
+              []
+              index-lookup))))
 
 (defn build-transactions
   [conn]
   (fn [trans]
     (let [fields (first trans)
           lookup schema/transaction-lookup
-          index-lookup (convert/make-index lookup fields)]
-      (mapv 
-       #(deref
-         (datomic/transact
-          conn
-          ((build-transaction index-lookup) %)))
-       (take 2 (rest trans))))))
+          index-lookup (convert/make-index lookup fields)
+          trans-data (mapcat (build-transaction index-lookup)
+                             (take 2 (rest trans)))]
+      (deref (datomic/transact conn trans-data)))))
 
 (defn load-all
   [conn]

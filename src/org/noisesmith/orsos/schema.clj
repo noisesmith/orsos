@@ -95,13 +95,13 @@
   {"Tran Id" nil
    "Original Id" :transaction/original-id
    "Tran Date" :transaction/transaction-date
-   "Tran Status" :transaction/status
-   "Filer" :transaction/filer
-   "Contributor/Payee" :transaction/contributor-payee
-   "Sub Type" :transaction/transaction-subtype
+   "Tran Status" nil
+   "Filer" nil
+   "Contributor/Payee" nil
+   "Sub Type" nil
    "Amount" :transaction/amount
    "Aggregate Amount" :transaction/aggregate-amount
-   "Contributor/Payee Committee ID" :transaction/contributor-payee
+   "Contributor/Payee Committee ID" nil
    "Filer Id" nil
    "Attest By Name" nil
    "Attest Date" nil

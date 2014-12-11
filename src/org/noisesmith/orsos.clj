@@ -20,5 +20,5 @@
   (let [schema (schema/get-schema)]
     @(datomic/transact @conn schema)
     (load/load-all @conn)
-    (datomic/q '[:find [?e ...] :where [?e :transaction/filer]]
-               (datomic/db @conn))))
+    (println (datomic/q '[:find [?e ...] :where [?e :transaction/amount]]
+                        (datomic/db @conn)))))
