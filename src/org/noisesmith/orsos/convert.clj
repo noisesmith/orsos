@@ -20,7 +20,6 @@
       (println "bad num" s)
       0M)))
 
-#(try (BigDecimal. %) (catch Exception _ 0M))
 (defn parsers
   "A map from the keyword in our datomic schema to the function which will
   generate data of that type from the value we will get from the CSV."
@@ -42,13 +41,13 @@
 
 (defn get-type
   "Use our datomic schema data structure to find the data converter we need."
-  [schema table field]
+  [schema field]
   (-> schema
-      (->> (filter #(= (:name %) (name table))))
+      (->> (filter #(= (:name %) (namespace field))))
       first
       :fields
       (get (name field))
-      (conj (name table))
+      (conj (namespace field))
       (conj (name field))
       parsers))
 
@@ -58,8 +57,11 @@
   to the keyword for the field in the schema."
   [lookup fields]
   (reduce (fn [m [n k]]
-            (if-let [ky (get lookup k)]
-              (assoc m ky n)
+            (if-let [mappings
+                     (not-empty
+                      (for [[eid ky] (get lookup k)]
+                        [ky [n eid]]))]
+              (apply conj m mappings)
               m))
           {}
           (partition

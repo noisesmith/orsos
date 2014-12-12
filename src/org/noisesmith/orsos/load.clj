@@ -30,21 +30,24 @@
   "Generate the :db/add clauses to insert one row from a CSV."
   [index-lookup]
   (fn builder [tran]
-    (let [id (datomic/tempid :db.part/user)] ;; every insert is to the same id
-      (reduce (fn [v [k idx]]
-                (let [typer (convert/get-type schema/orsos-schema
-                                              "transaction" k)
-                      val (get tran idx)
-                      value (and (not-empty val)
-                                 (try
-                                   (typer val)
-                                   (catch Exception e
-                                     (println e "Load: bad val:" val))))]
-                  (if value
-                    (conj v [:db/add id k value])
-                    v)))
-              []
-              index-lookup))))
+    (reduce (fn [[v entities :as acc] [k [idx eid]]]
+              (let [entities (if (contains? entities eid)
+                               entities
+                               (assoc entities eid
+                                      (datomic/tempid :db.part/user)))
+                    id (get entities eid)
+                    typer (convert/get-type schema/orsos-schema k)
+                    val (get tran idx)
+                    value (and (not-empty val)
+                               (try
+                                 (typer val)
+                                 (catch Exception e
+                                   (println e "Load: bad val:" val))))]
+                (if value
+                  [(conj v [:db/add id k value]) entities]
+                  acc)))
+            [[] {}]
+            index-lookup)))
 
 (defn build-transactions
   "Generate input suitable for the datomic database from a CSV file."
@@ -52,7 +55,7 @@
   (let [fields (first trans)
         lookup schema/transaction-lookup
         index-lookup (convert/make-index lookup fields)]
-    (mapcat (build-transaction index-lookup)
+    (mapcat (comp first (build-transaction index-lookup))
             (->> trans
                  rest
                  (take 2)))))

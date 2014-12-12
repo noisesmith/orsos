@@ -44,6 +44,7 @@
        [group :string :indexed "candidate office group"]))
    (d-schema/schema committee
      (d-schema/fields
+       [committee-name            :string :indexed]
        [committee-type            :enum [:cpc :cc :pac]]
        [committee-subtype         :string]
        [filing-date               :instant]
@@ -69,8 +70,8 @@
        [transaction-subtype       :ref :indexed]
        [amount                    :bigdec]
        [aggregate-amount          :bigdec]
-       [filer
-        :ref "Reference to committee that filed this transaction"]
+       [filer-raw :string]
+       [filer :ref "Reference to committee that filed this transaction"]
        [contributor-payee
         :ref "Contributor Payee - maybe a committee too"]
        [attest-by                 :ref]
@@ -93,30 +94,31 @@
        [is-trans-stsfd            :boolean]))])
 
 (def transaction-lookup
-  {"Tran Id" :transaction/id-str
-   "Original Id" :transaction/original-id
-   "Tran Date" :transaction/transaction-date
-   "Tran Status" :transaction/status
-   "Filer" nil
+  {"Tran Id" {0 :transaction/id-str}
+   "Original Id" {0 :transaction/original-id}
+   "Tran Date" {0 :transaction/transaction-date}
+   "Tran Status" {0 :transaction/status}
+   "Filer" {0 :transaction/filer-raw
+            1 :committee/committee-name}
    "Contributor/Payee" nil
    "Sub Type" nil
-   "Amount" :transaction/amount
-   "Aggregate Amount" :transaction/aggregate-amount
+   "Amount" {0 :transaction/amount}
+   "Aggregate Amount" {0 :transaction/aggregate-amount}
    "Contributor/Payee Committee ID" nil
    "Filer Id" nil
    "Attest By Name" nil
-   "Attest Date" :transaction/attest-date
+   "Attest Date" {0 :transaction/attest-date}
    "Review By Name" nil
-   "Review Date" :transaction/review-date
-   "Due Date" :transaction/due-date
-   "Occptn Ltr Date" :transaction/occupation-letter-date
-   "Pymt Sched Txt" :transaction/payment-schedule
-   "Purp Desc" :transaction/purpose-description
-   "Intrst Rate" :transaction/interest-rate
-   "Check Nbr" :transaction/check-number
-   "Tran Stsfd Ind" :transaction/is-trans-stsfd
+   "Review Date" {0 :transaction/review-date}
+   "Due Date" {0 :transaction/due-date}
+   "Occptn Ltr Date" {0 :transaction/occupation-letter-date}
+   "Pymt Sched Txt" {0 :transaction/payment-schedule}
+   "Purp Desc" {0 :transaction/purpose-description}
+   "Intrst Rate" {0 :transaction/interest-rate}
+   "Check Nbr" {0 :transaction/check-number}
+   "Tran Stsfd Ind" {0 :transaction/is-trans-stsfd}
    "Filed By Name" nil
-   "Filed Date" :transaction/filed-date
+   "Filed Date" {0 :transaction/filed-date}
    "Addr book Agent Name" nil
    "Book Type" nil
    "Title Txt" nil
@@ -132,9 +134,9 @@
    "State" nil
    "Zip" nil
    "Zip Plus Four" nil
-   "County" :transaction/contributor-payee-county
-   "Purpose Codes" :transaction/purpose-codes
-   "Exp Date" :transaction/expired-date})
+   "County" {0 :transaction/contributor-payee-county}
+   "Purpose Codes" {0 :transaction/purpose-codes}
+   "Exp Date" {0 :transaction/expired-date}})
 
 (defn get-schema
   []
