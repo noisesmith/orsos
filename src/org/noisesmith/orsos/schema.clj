@@ -62,6 +62,7 @@
        [type      :string :indexed]))
    (d-schema/schema transaction
      (d-schema/fields
+       [id-str                    :string]
        [original-id               :string]
        [transaction-date          :instant :indexed]
        [status                    :enum [:original :amended]]
@@ -92,10 +93,10 @@
        [is-trans-stsfd            :boolean]))])
 
 (def transaction-lookup
-  {"Tran Id" nil
+  {"Tran Id" :transaction/id-str
    "Original Id" :transaction/original-id
    "Tran Date" :transaction/transaction-date
-   "Tran Status" nil
+   "Tran Status" :transaction/status
    "Filer" nil
    "Contributor/Payee" nil
    "Sub Type" nil
@@ -104,18 +105,18 @@
    "Contributor/Payee Committee ID" nil
    "Filer Id" nil
    "Attest By Name" nil
-   "Attest Date" nil
+   "Attest Date" :transaction/attest-date
    "Review By Name" nil
-   "Review Date" nil
-   "Due Date" nil
-   "Occptn Ltr Date" nil
-   "Pymt Sched Txt" nil
-   "Purp Desc" nil
-   "Intrst Rate" nil
-   "Check Nbr" nil
-   "Tran Stsfd Ind" nil
+   "Review Date" :transaction/review-date
+   "Due Date" :transaction/due-date
+   "Occptn Ltr Date" :transaction/occupation-letter-date
+   "Pymt Sched Txt" :transaction/payment-schedule
+   "Purp Desc" :transaction/purpose-description
+   "Intrst Rate" :transaction/interest-rate
+   "Check Nbr" :transaction/check-number
+   "Tran Stsfd Ind" :transaction/is-trans-stsfd
    "Filed By Name" nil
-   "Filed Date" nil
+   "Filed Date" :transaction/filed-date
    "Addr book Agent Name" nil
    "Book Type" nil
    "Title Txt" nil
@@ -131,9 +132,9 @@
    "State" nil
    "Zip" nil
    "Zip Plus Four" nil
-   "County" nil
-   "Purpose Codes" nil
-   "Exp Date" nil})
+   "County" :transaction/contributor-payee-county
+   "Purpose Codes" :transaction/purpose-codes
+   "Exp Date" :transaction/expired-date})
 
 (defn get-schema
   []

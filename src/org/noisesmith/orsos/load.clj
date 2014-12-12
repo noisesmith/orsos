@@ -34,8 +34,15 @@
       (reduce (fn [v [k idx]]
                 (let [typer (convert/get-type schema/orsos-schema
                                               "transaction" k)
-                      value (get tran idx)]
-                  (conj v [:db/add id k (typer value)])))
+                      val (get tran idx)
+                      value (and (not-empty val)
+                                 (try
+                                   (typer val)
+                                   (catch Exception e
+                                     (println e "Load: bad val:" val))))]
+                  (if value
+                    (conj v [:db/add id k value])
+                    v)))
               []
               index-lookup))))
 
@@ -46,7 +53,9 @@
         lookup schema/transaction-lookup
         index-lookup (convert/make-index lookup fields)]
     (mapcat (build-transaction index-lookup)
-            (take 2 (rest trans)))))
+            (->> trans
+                 rest
+                 (take 2)))))
 
 (defn transaction-runner
   "Construct an executor for transactions with this connection."
@@ -63,4 +72,5 @@
            :or {transaction-directory transaction-dir}}]
   (let [orso-transactions (load-transactions transaction-dir)]
     (mapv (transaction-runner conn)
-          (take 2 orso-transactions))))
+          (->> orso-transactions
+               (take 2)))))
