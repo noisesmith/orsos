@@ -1,5 +1,6 @@
 (ns org.noisesmith.orsos
-  (:require [datomic.api :as datomic]
+  (:require [clojure.pprint :as pprint]
+            [datomic.api :as datomic]
             [org.noisesmith.orsos.schema :as schema]
             [org.noisesmith.orsos.load :as load])
   (:gen-class))
@@ -20,5 +21,6 @@
   (let [schema (schema/get-schema)]
     @(datomic/transact @conn schema)
     (load/load-all @conn)
-    (println (datomic/q '[:find [?e ...] :where [?e :transaction/amount]]
-                        (datomic/db @conn)))))
+    (pprint/pprint
+     (datomic/q '[:find (pull ?e [*]) :where [?e :transaction/amount]]
+                (datomic/db @conn)))))
