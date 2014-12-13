@@ -106,7 +106,8 @@
         lookup schema/transaction-lookup
         schema schema/orsos-schema]
     (doseq [transaction (->> orso-transactions
-                             (take 2))]
+                             ;; (take 2)
+                             )]
       ((transaction-runner conn schema lookup) transaction)))
   (let [orsos-committees (load-csvs committee-directory)
         lookup schema/committee-lookup
