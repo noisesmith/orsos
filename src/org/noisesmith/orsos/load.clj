@@ -1,6 +1,7 @@
 (ns org.noisesmith.orsos.load
   (:refer-clojure :exclude [load])
-  (:require [datomic.api :as datomic]
+  (:require [clojure.pprint :as pprint]
+            [datomic.api :as datomic]
             [org.noisesmith.orsos.convert :as convert]
             [org.noisesmith.orsos.schema :as schema]
             [clojure.java.io :as io]
@@ -28,26 +29,48 @@
 
 (defn build-transaction
   "Generate the :db/add clauses to insert one row from a CSV."
-  [index-lookup]
+  [index-lookup refs]
   (fn builder [tran]
-    (reduce (fn [[v entities :as acc] [k [idx eid]]]
-              (let [entities (if (contains? entities eid)
-                               entities
-                               (assoc entities eid
-                                      (datomic/tempid :db.part/user)))
-                    id (get entities eid)
-                    typer (convert/get-type schema/orsos-schema k)
-                    val (get tran idx)
-                    value (and (not-empty val)
-                               (try
-                                 (typer val)
-                                 (catch Exception e
-                                   (println e "Load: bad val:" val))))]
-                (if value
-                  [(conj v [:db/add id k value]) entities]
-                  acc)))
-            [[] {}]
-            index-lookup)))
+    ;; entities are all the entities to be created from this line of the csv
+    ;; see the lookup table in schema.clj - each field is mapped to N entities
+    (let [entity-pairs (map (fn [[k v]]
+                              [v (datomic/tempid :db.part/user)])
+                            refs)
+          entities (into {} entity-pairs)
+          entries
+          (reduce (fn [acc [k [idx eid]]]
+                    (let [id (get entities eid)
+                          typer (convert/get-type schema/orsos-schema k)
+                          val (get tran idx)
+                          value (and (not-empty val)
+                                     (try
+                                       (typer val)
+                                       (catch Exception e
+                                         (println e "Load: bad val:" val))))]
+                      (if value
+                        (conj acc [:db/add id k value])
+                        acc)))
+                  []
+                  index-lookup)
+          ;; those entities that are referenced
+          referenced (into #{} (map second entries))
+          ;; reverse lookup of entity to index
+          r-entities (into {} (for [[k v] entity-pairs] [v k]))
+          ;; id / index pairs for referenced entities
+          ref (select-keys r-entities referenced)
+          ;; reverse lookup of index  to datomic key
+          r-refs (into {} (for [[k v] refs :when (keyword? k)] [v k]))
+          ;; add statements to associate refs
+          main-id (get entities 0)
+          more-entries
+          (reduce (fn [acc [datomic-id idx]]
+                    (if-let [datom-key (get r-refs idx)]
+                      (conj acc [:db/add main-id datom-key datomic-id])
+                      acc))
+                  []
+                  ref)]
+      ;; (pprint/pprint {:ref ref :more-entries more-entries})
+      (into entries more-entries))))
 
 (defn build-transactions
   "Generate input suitable for the datomic database from a CSV file."
@@ -55,7 +78,7 @@
   (let [fields (first trans)
         lookup schema/transaction-lookup
         index-lookup (convert/make-index lookup fields)]
-    (mapcat (comp first (build-transaction index-lookup))
+    (mapcat (build-transaction index-lookup (:ref lookup))
             (->> trans
                  rest
                  (take 2)))))

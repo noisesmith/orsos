@@ -24,7 +24,7 @@
   "A map from the keyword in our datomic schema to the function which will
   generate data of that type from the value we will get from the CSV."
   [[from spec space field]]
-  (println "parse" (pr-str from) (pr-str spec))
+  ;; (println "parse" (pr-str from) (pr-str spec))
   (get 
    {:string identity
     :instant get-instant

@@ -78,7 +78,6 @@
        [attest-date               :instant]
        [review-by                 :ref]
        [review-date               :instant]
-       [filed-by                  :ref]
        [filed-date                :instant]
        [due-date                  :instant]
        [payment-schedule          :string]
@@ -94,13 +93,20 @@
        [is-trans-stsfd            :boolean]))])
 
 (def transaction-lookup
-  {"Tran Id" {0 :transaction/id-str}
+  {:ref {nil 0
+         :transaction/transaction-subtype 2
+         :transaction/filer 1
+         :transaction/attest-by 3
+         :transaction/review-by 4
+         :transaction/contributor-payee-agent 5
+         :transaction/contributor-payee-address 6}
+   "Tran Id" {0 :transaction/id-str}
    "Original Id" {0 :transaction/original-id}
    "Tran Date" {0 :transaction/transaction-date}
    "Tran Status" {0 :transaction/status}
    "Filer" {0 :transaction/filer-raw
             1 :committee/committee-name}
-   "Contributor/Payee" nil
+   "Contributor/Payee" {5 :entity/name}
    "Sub Type" nil
    "Amount" {0 :transaction/amount}
    "Aggregate Amount" {0 :transaction/aggregate-amount}
