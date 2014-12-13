@@ -82,7 +82,8 @@
     (mapcat (build-transaction index-lookup (:ref lookup) schema)
             (->> trans
                  rest
-                 (take 2)))))
+                 ;; (take 2)
+                 ))))
 
 (defn transaction-runner
   "Construct an executor for transactions with this connection."
@@ -111,5 +112,6 @@
         lookup schema/committee-lookup
         schema schema/orsos-schema]
     (doseq [transaction (->> orsos-committees
-                             (take 2))]
+                             ;; (take 2)
+                             )]
       ((transaction-runner conn schema lookup) transaction))))

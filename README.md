@@ -6,11 +6,13 @@ Clojure program to build a datomic database with data available from the Oregon 
 
 requires the csv files from ORSoS to be available under resources/orsos/
 
-lein run
+right now it expects the transaction csv files to be under `resources/orsos/transactions` and the committee csv files to be under `resources/orsos/committees`
+
+    lein run
+
+loads the csvs into the in-memory database and then runs the query specified in `src/org/noisesmith/orsos.clj:-main`
 
 ### Bugs
-
-Not ready for production, currently builds the schema and loads data, but no useful queries are possible yet.
 
 ## License
 

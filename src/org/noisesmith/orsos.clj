@@ -22,5 +22,5 @@
     @(datomic/transact @conn schema)
     (load/load-all @conn)
     (pprint/pprint
-     (datomic/q '[:find (pull ?e [*]) :where [?e :trans-subtype/type]]
+     (datomic/q '[:find (pull ?e [*]) :where [?e :committee/committee-name]]
                 (datomic/db @conn)))))
