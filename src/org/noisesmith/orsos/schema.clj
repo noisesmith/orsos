@@ -10,6 +10,7 @@
    (d-schema/schema entity
      (d-schema/fields
        [name        :string :indexed]
+       [orsos-id    :string :indexed]
        [entity-type :string :indexed]
        [employer    :ref]))
    (d-schema/schema person
@@ -44,6 +45,7 @@
        [group :string :indexed "candidate office group"]))
    (d-schema/schema committee
      (d-schema/fields
+       [orsos-id                  :string :indexed]
        [committee-name            :string :indexed]
        [committee-type            :enum [:cpc :cc :pac]]
        [committee-subtype         :string]
@@ -55,7 +57,10 @@
        [candidate-mailing-address :ref]
        [active-election           :string]
        [supports-measures         :ref :many]
-       [opposes-measures          :ref :many]))
+       [opposes-measures          :ref :many]
+       [position                  :string]
+       [candidate-office          :string]
+       [candidate-office-group    :string]))
    (d-schema/schema trans-subtype
      (d-schema/fields
        [name      :string :indexed]
@@ -92,6 +97,35 @@
        [expired-date              :instant]
        [is-trans-stsfd            :boolean]))])
 
+(def committee-lookup
+  {:ref {nil 0
+         :committee/treasurer 1
+         :committee/treasurer-mailing-address 2
+         :committee/candidate 3
+         :committee/candidate-mailing-address 4}
+   "Committee Id" {0 :committee/orsos-id}
+   "Committee Name" {0 :committee/committee-name}
+   "Committee Type" {0 :committee/committee-type}
+   "Committee SubType" {0 :committee/committee-subtype}
+   "Candidate Office" {0 :committee/candidate-office}
+   "Candidate Office Group" {0 :committee/candidate-office-group}
+   "Filing Date" {0 :committee/filing-date}
+   "Organization Filing Date" {0 :committee/organization-filing-date}
+   "Treasurer First Name" {1 :person/first-name}
+   "Treasurer Last Name" {1 :person/last-name}
+   "Treasurer Mailing Address" {2 :address/full}
+   "Treasurer Work Phone" {1 :person/work-phone}
+   "Treasurer Fax" {1 :person/fax-phone}
+   "Candidate First Name" {3 :person/first-name}
+   "Candidate Last Name" {3 :person/last-name}
+   "Candidate Maling Address" {4 :address/full}
+   "Candidate Work Phone" {3 :person/work-phone}
+   "Candidate Residence Phone" {3 :person/residence-phone}
+   "Candidate Fax" {3 :person/fax-phone}
+   "Candidate Email" {3 :person/email}
+   "Active Election" {0 :committee/active-election}
+   "Measure" {0 :committee/position}})
+
 (def transaction-lookup
   {:ref {nil 0
          :transaction/transaction-subtype 2
@@ -107,14 +141,14 @@
    "Filer" {0 :transaction/filer-raw
             1 :committee/committee-name}
    "Contributor/Payee" {5 :entity/name}
-   "Sub Type" nil
+   "Sub Type" {2 :trans-subtype/type}
    "Amount" {0 :transaction/amount}
    "Aggregate Amount" {0 :transaction/aggregate-amount}
-   "Contributor/Payee Committee ID" nil
-   "Filer Id" nil
-   "Attest By Name" nil
+   "Contributor/Payee Committee ID" {5 :entity/orsos-id}
+   "Filer Id" {1 :committee/orsos-id}
+   "Attest By Name" {3 :entity/name}
    "Attest Date" {0 :transaction/attest-date}
-   "Review By Name" nil
+   "Review By Name" {4 :entity/name}
    "Review Date" {0 :transaction/review-date}
    "Due Date" {0 :transaction/due-date}
    "Occptn Ltr Date" {0 :transaction/occupation-letter-date}
@@ -123,7 +157,7 @@
    "Intrst Rate" {0 :transaction/interest-rate}
    "Check Nbr" {0 :transaction/check-number}
    "Tran Stsfd Ind" {0 :transaction/is-trans-stsfd}
-   "Filed By Name" nil
+   "Filed By Name" {1 :committee/committee-name}
    "Filed Date" {0 :transaction/filed-date}
    "Addr book Agent Name" nil
    "Book Type" nil

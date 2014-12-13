@@ -11,25 +11,27 @@
   "Directory that holds the cash transaction CSV files."
   "orsos/transactions/")
 
+(def committee-dir
+  "Directory that holds the committee data CSV files."
+  "orsos/sos_committees")
+
 (defn load-csv
   [path]
   "Load an individual CSV file from the classpath."
   (with-open [source (io/reader (io/resource path))]
     (doall (csv/read-csv source))))
 
-(def load-transactions
+(defn load-csvs
   "Get all the contents from all the cash transaction CSV files in a given
-  directory.
-  Memoized for development purposes."
-  (memoize
-   (fn [from-dir]
-     (let [dir (.list (io/file (io/resource from-dir)))]
-       (map #(load-csv (str from-dir \/ %)) dir)))))
+  directory. "
+  [from-dir]
+  (let [dir (.list (io/file (io/resource from-dir)))]
+    (map #(load-csv (str from-dir \/ %)) dir)))
 
 
 (defn build-transaction
   "Generate the :db/add clauses to insert one row from a CSV."
-  [index-lookup refs]
+  [index-lookup refs schema]
   (fn builder [tran]
     ;; entities are all the entities to be created from this line of the csv
     ;; see the lookup table in schema.clj - each field is mapped to N entities
@@ -40,7 +42,7 @@
           entries
           (reduce (fn [acc [k [idx eid]]]
                     (let [id (get entities eid)
-                          typer (convert/get-type schema/orsos-schema k)
+                          typer (convert/get-type schema k)
                           val (get tran idx)
                           value (and (not-empty val)
                                      (try
@@ -74,29 +76,40 @@
 
 (defn build-transactions
   "Generate input suitable for the datomic database from a CSV file."
-  [trans]
+  [trans schema lookup]
   (let [fields (first trans)
-        lookup schema/transaction-lookup
         index-lookup (convert/make-index lookup fields)]
-    (mapcat (build-transaction index-lookup (:ref lookup))
+    (mapcat (build-transaction index-lookup (:ref lookup) schema)
             (->> trans
                  rest
                  (take 2)))))
 
 (defn transaction-runner
   "Construct an executor for transactions with this connection."
-  [conn]
+  [conn schema lookup]
   (fn run-transaction
     ;; Run a transaction for the the data supplied.
     [data]
-    (deref (datomic/transact conn (build-transactions data)))))
+    (let [runnable (build-transactions data schema lookup)]
+      ;; (pprint/pprint {:runnable runnable})
+      (deref (datomic/transact conn runnable)))))
 
 (defn load-all
   "Populate the in-memory datomic database with the downloaded csv data."
-  [conn & {transaction-directory :transactions
-           :as opts
-           :or {transaction-directory transaction-dir}}]
-  (let [orso-transactions (load-transactions transaction-dir)]
-    (mapv (transaction-runner conn)
-          (->> orso-transactions
-               (take 2)))))
+  [conn & [{transaction-directory :transactions
+             committee-directory :committees
+             :as opts
+             :or {transaction-directory transaction-dir
+                  committee-directory committee-dir}}]]
+  (let [orso-transactions (load-csvs transaction-directory)
+        lookup schema/transaction-lookup
+        schema schema/orsos-schema]
+    (doseq [transaction (->> orso-transactions
+                             (take 2))]
+      ((transaction-runner conn schema lookup) transaction)))
+  (let [orsos-committees (load-csvs committee-directory)
+        lookup schema/committee-lookup
+        schema schema/orsos-schema]
+    (doseq [transaction (->> orsos-committees
+                             (take 2))]
+      ((transaction-runner conn schema lookup) transaction))))
