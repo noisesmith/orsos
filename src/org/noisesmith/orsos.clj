@@ -1,6 +1,7 @@
 (ns org.noisesmith.orsos
   (:require [clojure.pprint :as pprint]
             [datomic.api :as datomic]
+            [org.noisesmith.orsos.datomic :as debug]
             [org.noisesmith.orsos.schema :as schema]
             [org.noisesmith.orsos.load :as load])
   (:gen-class))
@@ -18,9 +19,13 @@
 
 (defn -main
   [& args]
-  (let [schema (schema/get-schema)]
-    @(datomic/transact @conn schema)
-    (load/load-all @conn)
+  (let [schema (doto (schema/get-schema)
+                 (#(deref (datomic/transact @conn %))))
+        source-data (load/load-all)]
+    ;; (debug/values (datomic/db @conn))
+    (doseq [source source-data]
+      (load/run-transaction @conn source))
     (pprint/pprint
-     (datomic/q '[:find (pull ?e [*]) :where [?e :committee/committee-name]]
+     (datomic/q '[:find (pull ?e [*])
+                  :where [?e :committee/committee-name]]
                 (datomic/db @conn)))))

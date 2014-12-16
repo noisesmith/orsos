@@ -138,8 +138,7 @@
    "Original Id" {0 :transaction/original-id}
    "Tran Date" {0 :transaction/transaction-date}
    "Tran Status" {0 :transaction/status}
-   "Filer" {0 :transaction/filer-raw
-            1 :committee/committee-name}
+   "Filer" {0 :transaction/filer-raw}
    "Contributor/Payee" {5 :entity/name}
    "Sub Type" {2 :trans-subtype/type}
    "Amount" {0 :transaction/amount}

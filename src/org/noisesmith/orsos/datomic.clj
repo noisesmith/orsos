@@ -2,8 +2,8 @@
   (:require [datomic.api :as datomic]))
 
 (defn values
-  [db]
-  (let [it (.iterator (datomic/datoms db :eavt))]
+  [^datomic.db.Db db]
+  (let [it ^datomic.iter.Iterator (.iterator (datomic/datoms db :eavt))]
     ((fn all []
        (lazy-seq
         (when (.hasNext it)

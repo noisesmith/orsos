@@ -1,4 +1,4 @@
-(ns org.noisesmith.orsos.convert
+(ns org.noisesmith.ingest.convert
   (:require [clojure.instant :as instant]
             [clojure.string :as string]))
 
@@ -8,14 +8,14 @@
       (instant/read-instant-date (str y \- m \- d))))
 
 (defn parse-num
-  [s]
+  [^String s]
   (try
     (-> s
         (.replaceAll "(?i)zero" "0")
         (.replaceAll "(?i)none" "0")
         (.replaceAll "(?i)o" "0")
         (->> (re-find #"[0-9\.]+"))
-        BigDecimal.)
+        (#(BigDecimal. ^String %)))
     (catch Exception _
       (println "bad num" s)
       0M)))
@@ -28,7 +28,7 @@
   (get 
    {:string identity
     :instant get-instant
-    :enum #(keyword (str space \. field) (.toLowerCase %))
+    :enum #(keyword (str space \. field) (.toLowerCase ^String %))
     :bigdec parse-num
     :boolean {"1" true
               "0" false
@@ -50,21 +50,3 @@
       (conj (namespace field))
       (conj (name field))
       parsers))
-
-(defn make-index
-  "Generate a lookup table from the fields we want to their position in the
-  CSV input, with the help of lookup, which maps from the heading in the CSV
-  to the keyword for the field in the schema."
-  [lookup fields]
-  (reduce (fn [m [n k]]
-            (if-let [mappings
-                     (not-empty
-                      (for [[eid ky] (get lookup k)]
-                        [ky [n eid]]))]
-              (apply conj m mappings)
-              m))
-          {}
-          (partition
-           2
-           (interleave (range)
-                       fields))))
