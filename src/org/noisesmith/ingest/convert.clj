@@ -39,7 +39,7 @@
    from
    identity))
 
-(defn get-type
+(defn get-schema-info
   "Use our datomic schema data structure to find the data converter we need."
   [schema field]
   (-> schema
@@ -49,4 +49,4 @@
       (get (name field))
       (conj (namespace field))
       (conj (name field))
-      parsers))
+      ((juxt parsers identity))))

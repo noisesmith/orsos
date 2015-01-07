@@ -45,8 +45,8 @@
        [group :string :indexed "candidate office group"]))
    (d-schema/schema committee
      (d-schema/fields
-       [orsos-id                  :string :indexed]
-       [committee-name            :string :indexed]
+       [orsos-id                  :string :indexed :unique-value]
+       [committee-name            :string :indexed :unique-value]
        [committee-type            :enum [:cpc :cc :pac]]
        [committee-subtype         :string]
        [filing-date               :instant]

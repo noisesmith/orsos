@@ -2,7 +2,6 @@
   (:require [clojure.pprint :as pprint]
             [datomic.api :as datomic]
             [org.noisesmith.orsos.datomic :as debug]
-            [org.noisesmith.orsos.schema :as schema]
             [org.noisesmith.orsos.load :as load])
   (:gen-class))
 
@@ -16,16 +15,16 @@
    @created
    (datomic/connect db-uri)))
 
+(def debug (atom nil))
 
 (defn -main
   [& args]
-  (let [schema (doto (schema/get-schema)
-                 (#(deref (datomic/transact @conn %))))
-        source-data (load/load-all)]
+  (load/setup-schema @conn)
+  (let [source-data (load/load-all conn {:limit 5})]
+    (reset! debug source-data)
     ;; (debug/values (datomic/db @conn))
-    (doseq [source source-data]
-      (load/run-transaction @conn source))
+    (load/run-transaction @conn source-data)
     (pprint/pprint
      (datomic/q '[:find (pull ?e [*])
-                  :where [?e :committee/committee-name]]
+                  :where [?e :committee/committee-name "Kevin F Neely"]]
                 (datomic/db @conn)))))
