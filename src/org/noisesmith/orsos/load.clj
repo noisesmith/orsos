@@ -46,31 +46,51 @@
   [conn]
   (fn upsert-unique
     [{k :key v :value id :id :as entry}]
-    (let [duplicate (not-empty
-                     (and (not (coll? v))
-                          (datomic/q [:find '?e :where ['?e k v]]
-                                     (datomic/db conn))))]
-      (when duplicate
-        {:k k :v v :id id :duplicate-of (first duplicate)}))))
+    ;; (pprint/pprint {:entry entry})
+    (when entry
+      (let [duplicate (not-empty
+                       (and (not (coll? v))
+                            (datomic/q [:find '?e :where ['?e k v]]
+                                       (datomic/db conn))))]
+        (when duplicate
+          {:k k :v v :id id :duplicate-of duplicate})))))
+
+(defn apply-upserts
+  "Apply applicable upsertions to the merged items."
+  [merged conn]
+  (let [upserted (keep (comp (upsert-unique-to conn)
+                             val)
+                       merged)]
+    (into {} (map (juxt :id :duplicate-of) upserted))))
 
 (defn combine-unique
   "Combine entries that have the same key and value."
-  [entries conn]
-  ;; TODO: we need to inform the caller of duplication, so that insertions
-  ;; with refs to the item get the right tid
+  [entries]
   (let [grouped (group-by (juxt :key :value) entries)
-        merged-up (into {} (map (fn [[k v]]
-                                  [(:id (first v))
+        ;; _ (pprint/pprint {:grouped grouped})
+        merged-up (into {} (map (fn [[[k v] [instance & instances :as merged]]]
+                                  [(:id instance)
                                    {:key k
+                                    :id (:id instance)
                                     :value v
-                                    :vs (map :id (rest v))}])
-                                grouped))
-        upserted (keep (comp (upsert-unique-to conn)
-                             first
-                             val)
-                       merged-up)
-        upserts (group-by :id upserted)]
-    [merged-up upserts]))
+                                    :vs instances}])
+                                grouped))]
+    merged-up))
+
+(defn create-merge-mappings
+  [merged-up upserts]
+  (reduce (fn [[merged replacements] [orig-id merges]]
+            (let [id (get upserts orig-id orig-id)]
+              [(conj merged
+                     {:id id
+                      :key (:key merges)
+                      :value (:value merges)})
+               (reduce (fn [replacements merge]
+                         (assoc replacements merge id))
+                       replacements
+                       (:vs merges))]))
+          [[] {}]
+          merged-up))
 
 (defn normalize-entities
   "Take the raw entries derived from the rows of the CSV, and normalize to the
@@ -81,20 +101,9 @@
          others false
          :as split} (group-by (comp boolean :unique)
                               entries)
-        [merged-up upserts] (combine-unique unique conn)
-        [merged
-         replacements] (reduce (fn [[merged replacements] [orig-id merges]]
-                                 (let [id (get upserts orig-id orig-id)]
-                                   [(conj merged
-                                      {:id id
-                                       :key (:key merges)
-                                       :value (:value merges)})
-                                    (reduce (fn [replacements merge]
-                                              (assoc replacements merge id))
-                                            replacements
-                                            (:vs merges))]))
-                               [[] {}]
-                               merged-up)]
+        merged-up (combine-unique unique)
+        upserts (apply-upserts merged-up conn)
+        [merged replacements] (create-merge-mappings merged-up upserts)]
     (map (fn [{id :id v :value key :key :as entry}]
            (let [normalized-id (get replacements id id)
                  normalized-val (get replacements v v)]
@@ -133,18 +142,18 @@
             :or {transaction-directory transaction-dir
                  committee-directory committee-dir
                  limit nil}}]]
-  (concat (load-batch transaction-directory
-                      schema/transaction-lookup
-                      schema/orsos-schema
-                      convert/get-schema-info
-                      limit
-                      @conn)
-          (load-batch committee-directory
-                      schema/committee-lookup
-                      schema/orsos-schema
-                      convert/get-schema-info
-                      limit
-                      @conn)))
+  [(concat (load-batch transaction-directory
+                         schema/transaction-lookup
+                         schema/orsos-schema
+                         convert/get-schema-info
+                         limit
+                         @conn)
+             (load-batch committee-directory
+                         schema/committee-lookup
+                         schema/orsos-schema
+                         convert/get-schema-info
+                         limit
+                         @conn))])
 (defn setup-schema
   [conn]
   (let [computed-schema (schema/get-schema)

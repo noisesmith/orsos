@@ -15,14 +15,12 @@
    @created
    (datomic/connect db-uri)))
 
-(def debug (atom nil))
-
 (defn -main
   [& args]
   (load/setup-schema @conn)
   (let [source-data (load/load-all conn {:limit 5})]
-    (reset! debug source-data)
     ;; (debug/values (datomic/db @conn))
+    (pprint/pprint source-data)
     (load/run-transaction @conn source-data)
     (pprint/pprint
      (datomic/q '[:find (pull ?e [*])

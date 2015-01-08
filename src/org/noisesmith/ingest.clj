@@ -36,7 +36,14 @@
          (catch Exception e
            (println e "ingest/convert: bad value:" converter value)))))
 
-(def debug (promise))
+;; (def debug (atom #{}))
+
+(defn get-key
+  []
+  (delay (let [tid (datomic/tempid :db.part/user)]
+           ;; (assert (not (contains? @debug tid)))
+           ;; (swap! debug conj tid)
+           tid)))
 
 (defn ->row
   "Returns the function to load a row, given a lookup-map and a sequence of
@@ -48,7 +55,7 @@
                     ;; for each key in ref, create an id, mapped from the index
                     (assoc m
                       entity-index
-                      [entity-key (delay (datomic/tempid :db.part/user))]))
+                      [entity-key (get-key)]))
                   {}
                   (:ref lookup-map)))
         lookups (map lookup-map headings)]
