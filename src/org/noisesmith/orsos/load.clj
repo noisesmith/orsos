@@ -53,7 +53,8 @@
                             (datomic/q [:find '?e :where ['?e k v]]
                                        (datomic/db conn))))]
         (when duplicate
-          {:k k :v v :id id :duplicate-of duplicate})))))
+          (pprint/pprint {:duplicate duplicate})
+          {:k k :v v :id id :duplicate-of (ffirst duplicate)})))))
 
 (defn apply-upserts
   "Apply applicable upsertions to the merged items."
@@ -107,10 +108,8 @@
     (map (fn [{id :id v :value key :key :as entry}]
            (let [normalized-id (get replacements id id)
                  normalized-val (get replacements v v)]
-             [:db/add
-              :id normalized-id
-              :key key
-              :value normalized-val]))
+             [:db/add normalized-id
+              key normalized-val]))
          (concat others merged))))
 
 (defn pre-process
@@ -142,7 +141,7 @@
             :or {transaction-directory transaction-dir
                  committee-directory committee-dir
                  limit nil}}]]
-  [(concat (load-batch transaction-directory
+  (concat (load-batch transaction-directory
                          schema/transaction-lookup
                          schema/orsos-schema
                          convert/get-schema-info
@@ -153,7 +152,7 @@
                          schema/orsos-schema
                          convert/get-schema-info
                          limit
-                         @conn))])
+                         @conn)))
 (defn setup-schema
   [conn]
   (let [computed-schema (schema/get-schema)

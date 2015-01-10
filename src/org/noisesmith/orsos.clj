@@ -15,13 +15,16 @@
    @created
    (datomic/connect db-uri)))
 
+(defonce debug (atom nil))
+
 (defn -main
   [& args]
   (load/setup-schema @conn)
-  (let [source-data (load/load-all conn {:limit 5})]
+  (let [source-data (load/load-all conn {:limit 1})]
     ;; (debug/values (datomic/db @conn))
-    (pprint/pprint source-data)
+    (reset! debug source-data)
     (load/run-transaction @conn source-data)
+    #_
     (pprint/pprint
      (datomic/q '[:find (pull ?e [*])
                   :where [?e :committee/committee-name "Kevin F Neely"]]
