@@ -29,16 +29,11 @@
   (let [dir (.list (io/file (io/resource from-dir)))]
     (map #(load-csv (str from-dir \/ %)) dir)))
 
-
 (defn maybe-some
   [n]
   (if n
     #(take n %)
     identity))
-
-(defn run-transaction
-  [conn data-list]
-  (deref (datomic/transact conn data-list)))
 
 (defn upsert-unique-to
   "Take the normalized entities (such that each unique item is only listed once)
@@ -46,14 +41,12 @@
   [conn]
   (fn upsert-unique
     [{k :key v :value id :id :as entry}]
-    ;; (pprint/pprint {:entry entry})
     (when entry
       (let [duplicate (not-empty
                        (and (not (coll? v))
                             (datomic/q [:find '?e :where ['?e k v]]
                                        (datomic/db conn))))]
         (when duplicate
-          (pprint/pprint {:duplicate duplicate})
           {:k k :v v :id id :duplicate-of (ffirst duplicate)})))))
 
 (defn apply-upserts
@@ -68,7 +61,6 @@
   "Combine entries that have the same key and value."
   [entries]
   (let [grouped (group-by (juxt :key :value) entries)
-        ;; _ (pprint/pprint {:grouped grouped})
         merged-up (into {} (map (fn [[[k v] [instance & instances :as merged]]]
                                   [(:id instance)
                                    {:key k

@@ -23,7 +23,8 @@
   (let [source-data (load/load-all conn {:limit 1})]
     ;; (debug/values (datomic/db @conn))
     (reset! debug source-data)
-    (load/run-transaction @conn source-data)
+    (pprint/pprint
+     @(datomic/transact @conn source-data))
     #_
     (pprint/pprint
      (datomic/q '[:find (pull ?e [*])
